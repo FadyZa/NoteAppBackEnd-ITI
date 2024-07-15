@@ -1,65 +1,58 @@
-import { existsSync, writeFileSync, readFileSync } from "fs";
+import userModel from "../../db/models/user.model.js";
+import sendEmail from "../utilities/verfiyEmail.js"
+import bcrypt from "bcrypt";
+
+const signUp = async(req,res)=>{
+    res.setHeader("content-type","application/json");
+
+    await userModel.insertMany(req.body)
+    sendEmail(req.body.email);
+    const currUser = await userModel.findOne({email:req.body.email});
+    res.end(JSON.stringify(currUser))
+}
 
 
-if(!existsSync("test.json")){
-    let users = [
-        {name:"Ahmed", age:33, id:1},
-        {name:"fady", age:23, id:2}
-    ]
-    writeFileSync("test.json",JSON.stringify(users))
-} 
+const signIn = async (req,res)=>{
+    res.setHeader("content-type","application/json");
+    let foundUser = await userModel.findOne({email:req.body.email})
 
-let testFile = readFileSync("test.json");
-let users = JSON.parse(testFile)
-
-
-const getAllUsers = (req,res)=>{
-    res.setHeader("content-type","application/json")
-    users.sort((a,b)=>a.name.localeCompare(b.name))
-    let sortedUsers = JSON.stringify(users);
-    res.send(sortedUsers);
-};
-
-const getUserById = (req,res)=>{
-    res.setHeader("content-type","application/json")
-    let id = Number(req.params.id);
-    let user = users.find((user)=> user.id == id);
-    if(user){
-        res.end(JSON.stringify(user));
-    }else{
-        res.end("there is no user with this id")
+    if(foundUser){
+        if(bcrypt.compareSync(req.body.password, foundUser.password)){
+            res.end("welcome")
+        }else{
+            res.end("check your pass")
+        }
+    } else{
+        res.end("Invalid Email")
     }
-};
-
-
-const addUser = (req,res)=>{
-    res.setHeader("content-type","application/json")
-    console.log(req.body);
-    req.body.id = users[users.length - 1].id + 1;
-    users.push(req.body)
-    writeFileSync("test.json",JSON.stringify(users)) // Act Like DB 
-    res.end(JSON.stringify(users));
 }
 
-const updateUser = (req,res)=>{
-    let userToUpdate = users.find((user)=>user.id == req.params.id)
-    if(userToUpdate){
-        userToUpdate.name = req.body.name;
-        userToUpdate.age = req.body.age;
+const verifyEmail = async(req,res)=>{
+    // console.log(req.params.email);
+    res.setHeader("content-type","application/json");
+    const verifiedUser = await userModel.findOneAndUpdate({email:req.params.email},{isConfirmed:true},{new:true});
+    res.end(JSON.stringify(verifiedUser));
+}
+
+const varifyOtp = async (req,res)=>{
+    res.setHeader("content-type","application/json");
+    const findUser = await userModel.findOneAndUpdate(
+        {otp:req.params.otp},
+        { isOtpVerified: true },
+        { new: true }
+    );
+
+    if(findUser){
+        res.end(JSON.stringify(findUser));
     }else{
-        res.end("user not found")
+        res.end("Wrong OTP");
     }
-
-    writeFileSync("test.json",JSON.stringify(users)) // Act Like DB 
-    res.end("user Updated");
 }
 
-const deleteUser = (req,res)=>{
-    let filteredUsers = users.filter((user)=>req.params.id != user.id)
-    users = filteredUsers;
-    console.log(users)
-    writeFileSync("test.json",JSON.stringify(users))
-    res.end("user Deleted");
-}
 
-export {getAllUsers,getUserById,addUser,updateUser,deleteUser}
+export {
+    signUp,
+    signIn,
+    verifyEmail,
+    varifyOtp
+}
