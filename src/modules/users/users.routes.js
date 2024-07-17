@@ -1,12 +1,13 @@
 import express from "express";
-import { getAllUsers,getUserById,addUser,updateUser,deleteUser} from "./users.controller.js";
+import {signUp,signIn,verifyEmail,varifyOtp} from "./users.controller.js"
+import { checkEmail } from "../middleware/checkEmail.js";
 
 const userRoutes = express.Router();
 
-userRoutes.get("/",getAllUsers)
-userRoutes.get("/user/:id",getUserById);
-userRoutes.post("/",addUser)
-userRoutes.put("/user/:id",updateUser)
-userRoutes.delete("/user/:id",deleteUser)
+userRoutes.post("/signup",checkEmail,signUp)
+userRoutes.post("/signin",signIn)
+userRoutes.get("/verifyemail/:email",verifyEmail)
+userRoutes.put("/verifyotp/:otp",varifyOtp)
+
 
 export default userRoutes;
